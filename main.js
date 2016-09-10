@@ -1,65 +1,62 @@
-//For the other js file I'm referencing
-var fs = require("fs");
-var inquire = require('inquirer');
-var letter = require("./letter.js");
-var game = require("./game.js");
-var word = require("./word.js");
+// main.js 
 
-function initHangman(){
-	game.startNewGame();
-	promptAndProcessInput();
-}
+var inquirer = require('inquirer');
 
-function promptAndProcessInput(){
-	inquirer.prompt([{
-		type: 'input',
-		name: 'userGuess',
-		message: 'Enter guess (letter a-z):',
-		validate: function(value){
-			var validInputs = /[a-z]|[0-9]/i;
+var game = require('./game.js');
+var letter = require('./letter.js');
+var word = require('./word.js');
 
-			if (value.length == 1 && validInputs.test(value))
-				return true;
+var newGame = new game();
+var gameAnswer = newGame.chosenWord;
+var guessesLeft = 7;
+var checkWord = new word(newGame.chosenWord);
+var newLetter = new letter(checkWord.word);
+var isFirstGuess = true;
 
-			return 'Please enter a valid guess:';
+hangman();
+
+function hangman (){
+	
+	if (guessesLeft > 0) {
+
+		console.log("Remaining Guesses :" + guessesLeft)
+
+		if (isFirstGuess) {
+			newLetter.begin();
+			console.log(newLetter.output);
 		}
-	}]).then(function(answer){
-		var userGuess = answer.userGuess.toUpperCase();
-
-		if(game.lettersUsed.indexOf(userGuess) == -1){
-			game.lettersUsed.push(userGuess);
-
-			var correct = game.word.checkLetterInput(userGuess);
-
-			if(correct){
-				game.printresults("Your guess is correct.");
-			}
-			else {
-				game.livesRemaining--;
-				game.printresults("Wrong.");
-			}
-		}
-		else{
-			game.printresults("Letter has already been used.");
-		}
-
-		var userWon = game.word.getDisplayWord() === game.word.getTargetWord();
-
-		if(userWon){
-			game.wins++;
-			endCurrentGame("You won!");
-		}
-		else if(game.livesRemaining > 0)
-			promptAndProcessInput();
 		else {
-			game.losses++;
-			endCurrentGame("End of game. You lose.");
+			console.log(newLetter.display());
 		}
-	});
+
+		console.log("Letters Guessed: " + newLetter.lettersGuessed);
+
+		inquirer.prompt({
+		name: "guess",
+		message: "Welcome to Galactic Hangman. Guess a letter (a-z only): "
+		}).then(function(answer) {
+			isFirstGuess = false;
+			newLetter.update(answer.guess);
+
+			if (newLetter.isMatch) {
+				if(newLetter.win()) {
+					console.log("You got it!");
+					console.log("The answer was: " + gameAnswer);
+					return;
+				}
+				hangman();
+
+			}
+
+			else {
+				guessesLeft--;
+				hangman();
+			}
+		})
+	}	
+
+	else {
+		console.log("No guesses remaining, you lost!");
+		console.log("The answer was: " + gameAnswer);
+	}
 }
-
-//Application go!
-initHangman();
-
-
-// game.startnewgame to play again
